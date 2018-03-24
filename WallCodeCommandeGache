@@ -1,0 +1,16 @@
+/// activation et désactivation de la gache toutes les 3 secondes
+
+int gachePin = 12;
+
+void setup()
+{
+  pinMode( gachePin, OUTPUT );
+}
+
+void loop() 
+{
+  digitalWrite( gachePin, HIGH );
+  delay( 3000 );
+  digitalWrite( gachePin, LOW );
+  delay( 3000 );
+}
