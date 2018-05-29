@@ -11,6 +11,10 @@
 #include <ESP8266WebServer.h>
 #include <WiFiClient.h>
 #include <MFRC522.h>
+
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
+
 #define RST_PIN 0 // La PIN Reset du module RC522 est connectée au port GPIO 0 (D3, sur le NodeMCU)du NodeMcu ESP8266 1.0
 #define SS_PIN 2 // La PIN SS du module RC522 (ChipSelect) est connectée au port GPIO 2 (D4, sur le NodeMCU) du NodeMcu ESP8266 1.0
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance ??
@@ -20,11 +24,13 @@ const char* acces = "";//Contient une information sur l'accès autorisé ou non 
 String uid_tag = ""; /*Contient l'UID du TAG (format STRING)*/
 String uid_server = "";// Contient l'UID qui est envoyé au serveur (format STRING)
 String uid_autorise; /*Contient l'UID de TAG autorisé (format STRING)*/
-int ledVerte = 16; // Remplace la commande de la gache dévérouillée 
-int ledRouge = 15; /*Remplace la commande de l'écran LCD*/
-int ledOrange = 10; /*Remplace la commande de l'écran LCD*/
+int ledVerte = 15; // Remplace la commande de la gache dévérouillée 
+int ledRouge = 10; /*Remplace la commande de l'écran LCD*/
+int ledOrange = 16; /*Remplace la commande de l'écran LCD*/
 int gache;
 ESP8266WebServer server(80); // Server sur le port 80
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);//SDA : TX   SCL : RX
 
 /*==========================================
                     SETUP
@@ -52,6 +58,16 @@ void setup()
 
   server.begin ();
   Serial.println ("HTTP Server commence");  
+
+  
+
+  Wire.begin(1,3);//SDA :TX  -- SCL RX
+  lcd.init();   // initializing the LCD
+  lcd.backlight(); // Enable or Turn On the backlight 
+  lcd.setCursor(0,0);
+  lcd.print("VEUILLEZ  PASSER");
+  lcd.setCursor(0,1);
+  lcd.print("VOTRE  BADGE  :)");// Start Printing
   
 }
 
@@ -63,10 +79,16 @@ void loop()
   digitalWrite(ledVerte,LOW);
   digitalWrite(ledRouge,LOW);
   digitalWrite(ledOrange,LOW);
+
   
-  uid_tag="";//On vide cette variable afin d'obtenir 
+  lcd.setCursor(0,0);
+  lcd.print("VEUILLEZ  PASSER");
+  lcd.setCursor(0,1);
+  lcd.print("VOTRE  BADGE  :)");// Start Printing
   
-   server.handleClient(); // Vérifie la présence d'un client et renvoi à celui la page HTML demandé
+  uid_tag="";//On vide cette variable pour ne pas faire le test 
+  
+  server.handleClient(); // Vérifie la présence d'un client et renvoi à celui la page HTML demandé
 
   if (!mfrc522.PICC_IsNewCardPresent ()) //Vérifie la présence du TAG sur le lecteur RFID
   {
@@ -122,6 +144,13 @@ void uid_test ()
        acces = " Acces autorise ! ";
        uid_server = "Bienvenue M. le prof";
        digitalWrite(ledVerte,HIGH);
+       
+       lcd.clear();
+       lcd.setCursor(0,0);
+       lcd.print("ACCES AUTORISE");
+       lcd.setCursor(0,1);
+       lcd.print("BIENVENUE !");
+       
        gache=1;      //Lorsque gache vaut 1 la LED verte s'allumme (cf, la fonction systeme_gache)    
     }
    else //Sinon, si le TAG n'est pas le même que celui autorisé
@@ -129,6 +158,13 @@ void uid_test ()
        acces = "Acces refuse ! ";
        uid_server = "Veuillez contacter l'administration" ;
        digitalWrite(ledRouge,HIGH);
+       
+       lcd.clear();
+       lcd.setCursor(0,0);
+       lcd.print("ACCES REFUSE");
+       lcd.setCursor(0,1);
+       lcd.print("...");
+       
        gache=2;//Lorsque gache vaut 2 la LED verte ne s'alumme pas (cf, la fonction systeme_gache)       
     }   
 }
@@ -144,12 +180,12 @@ void systeme_gache () //Fonction qui simule les instructions de la gache
     delay(2000);
     digitalWrite(ledVerte,0);
     digitalWrite(ledOrange,0);
-    
-    gache=0; //Pour sortir de la boucle
+    lcd.clear();
    } 
    else(gache==2);
    {
-     delay(2000);   
+     delay(2000); 
+     lcd.clear();  
    }    
 }
 
@@ -188,22 +224,3 @@ void conversion(byte *buffer, byte bufferSize)
    }
 }
 
-
-
-
-/*==========================================
-            systeme LCD
-============================================
-void systeme_lcd () //Fonction qui simule les instruction du lecteur LCD
-{      
-  if (uid_tag=="")
-   {
-    digitalWrite(ledRouge,LOW);
-    digitalWrite(ledOrange,HIGH); // Simule l'envoi de l'instruction "Passez votre carte" sur l'écran LCD
-   } 
-  else
-  {
-  digitalWrite(ledOrange,LOW);
-  digitalWrite(ledRouge,HIGH); // Simule l'envoi de l'instruction "Acces autorisé ou non autorisé" sur l'écran LCD 
-  }
-}*/
